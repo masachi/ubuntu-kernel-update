@@ -1,0 +1,107 @@
+name: Ubuntu Kernel 5.15.4 latest
+
+on:
+  workflow_dispatch:
+
+env:
+  UPLOAD_DIR: false
+  UPLOAD_RELEASE: true
+  TZ: Asia/Shanghai
+
+jobs:
+  build:
+    runs-on: ubuntu-focal
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@main
+
+    - name: Initialization environment
+      env:
+        DEBIAN_FRONTEND: noninteractive
+      run: |
+        sudo apt-get update && apt-get upgrade -y
+        sudo apt-get install -y --no-install-recommends \
+            autoconf automake autopoint autotools-dev bsdmainutils debhelper dh-autoreconf git fakeroot \
+            dh-strip-nondeterminism distro-info-data dwz file gettext gettext-base groff-base \
+            intltool-debian libarchive-zip-perl libbsd0 libcroco3 libdebhelper-perl libelf1 libexpat1 \
+            libfile-stripnondeterminism-perl libglib2.0-0 libicu66 libmagic-mgc libmagic1 libmpdec2 \
+            libpipeline1 libpython3-stdlib libpython3.8-minimal libpython3.8-stdlib libsigsegv2 \
+            libssl1.1 libsub-override-perl libtool libuchardet0 libxml2 \
+            lsb-release m4 man-db mime-support po-debconf python-apt-common python3 python3-apt \
+            python3-minimal python3.8 python3.8-minimal sbsigntool tzdata dctrl-tools kernel-wedge \
+            libncurses-dev gawk flex bison openssl libssl-dev dkms libelf-dev libudev-dev libpci-dev \
+            libiberty-dev autoconf bc build-essential libusb-1.0-0-dev libhidapi-dev curl wget \
+            cpio makedumpfile libcap-dev libnewt-dev libdw-dev rsync gnupg2 ca-certificates\
+            libunwind8-dev liblzma-dev libaudit-dev uuid-dev libnuma-dev lz4 xmlto equivs \
+            cmake pkg-config zstd dwarves
+        sudo mkdir -p /workdir
+        sudo mkdir -p /workdir/upload
+        sudo chown $USER:$GROUPS /workdir
+        sudo chown $USER:$GROUPS /workdir/upload
+
+    - name: Get source code
+      working-directory: /workdir
+      id: code
+      if: steps.check.outputs.status == 'success'
+      run: |
+        df -hT $PWD
+        kernel_file=$(curl -s https://www.kernel.org/ | grep 'alt="Download"' | awk -F '"' '{print $2}')
+        kernel_ver=$(curl -s https://www.kernel.org/ | grep ' <a href="https://cdn.kernel.org/pub/linux/kernel/' | head -n 1 | awk -F '[>]' '{print $2}' | awk -F '[<]' '{print $1}')
+        wget -O kernel.tar.xz $kernel_file
+        tar -Jxvf kernel.tar.xz -C /workdir && cd /workdir/linux-$kernel_ver
+        echo "::set-output name=status::success"
+
+    - name: Compile the kernel
+      id: compile
+      if: steps.code.outputs.status == 'success'
+      working-directory: /workdir
+      run: |
+        kernel_ver=$(curl -s https://www.kernel.org/ | grep ' <a href="https://cdn.kernel.org/pub/linux/kernel/' | head -n 1 | awk -F '[>]' '{print $2}' | awk -F '[<]' '{print $1}')
+        cd linux-$kernel_ver
+        wget -O tcp_bbr.c https://raw.githubusercontent.com/marywangran/tcp-fair-bbr/main/tcp_fairbbr.c
+        # cp tcp_bbr.c /workdir/linux-${kernel_ver}/.config
+        sed -ri '/CONFIG_SYSTEM_TRUSTED_KEYS/s/=.+/=""/g' .config && scripts/config --disable MODULE_SIG && scripts/config --disable DEBUG_INFO
+        echo -e "$(nproc) thread compile"
+        sudo time make -j$(nproc) deb-pkg
+        cd /workdir && mv *.deb /workdir/upload
+        echo "::set-output name=status::success"
+        echo "FILE_DATE=Kernel_Ubuntu_$kernel_ver_$(date +"%Y%m%d%H%M")" >> $GITHUB_ENV   
+
+    - name: Check space usage
+      if: (!cancelled()) && steps.compile.outputs.status == 'success'
+      run: df -hT
+
+    - name: Upload
+      uses: actions/upload-artifact@main
+      if: steps.compile.outputs.status == 'success' && env.UPLOAD_DIR == 'true'
+      with:
+        name: ${{ env.FILE_DATE }}
+        path: /workdir/upload
+
+    - name: Generate release tag
+      id: tag
+      if: env.UPLOAD_RELEASE == 'true' && steps.compile.outputs.status == 'success' && !cancelled()
+      run: |
+        kernel_ver=$(curl -s https://www.kernel.org/ | grep ' <a href="https://cdn.kernel.org/pub/linux/kernel/' | head -n 1 | awk -F '[>]' '{print $2}' | awk -F '[<]' '{print $1}')
+        echo "::set-output name=release_tag::Ubuntu_Kernel_${kernel_ver}_latest_bbrplus_$(date +"%Y.%m.%d-%H%M")"
+        touch release.txt
+        echo "only for Cloud VMs" >> release.txt
+        echo "::set-output name=status::success"
+
+    - name: Upload kernel to release
+      uses: softprops/action-gh-release@v1
+      if: steps.tag.outputs.status == 'success' && !cancelled()
+      env:
+        #GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        GITHUB_TOKEN: ${{ secrets.TOKEN }}
+      with:
+        tag_name: ${{ steps.tag.outputs.release_tag }}
+        body_path: release.txt
+        files: /workdir/upload/*
+
+    - name: Delete workflow runs
+      uses: GitRML/delete-workflow-runs@main
+      with:
+        retain_days: 1
+        keep_minimum_runs: 10
