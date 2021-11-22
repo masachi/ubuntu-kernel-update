@@ -17,6 +17,7 @@ jobs:
       uses: actions/checkout@main
 
     - name: Initialization environment
+      id: initialization
       env:
         DEBIAN_FRONTEND: noninteractive
       run: |
@@ -36,7 +37,7 @@ jobs:
     - name: Get source code
       working-directory: /workdir
       id: code
-      if: steps.check.outputs.status == 'success'
+      if: steps.initialization.outputs.status == 'success'
       run: |
         df -hT $PWD
         kernel_file=$(curl -s https://www.kernel.org/ | grep 'alt="Download"' | awk -F '"' '{print $2}')
