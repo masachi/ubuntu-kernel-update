@@ -20,7 +20,7 @@ jobs:
       env:
         DEBIAN_FRONTEND: noninteractive
       run: |
-        sudo apt-get update && apt-get upgrade -y
+        sudo apt-get update && sudo apt-get upgrade -y
         sudo apt-get install -y --no-install-recommends \
             autoconf automake autopoint autotools-dev bsdmainutils debhelper dh-autoreconf git fakeroot \
             dh-strip-nondeterminism distro-info-data dwz file gettext gettext-base groff-base \
