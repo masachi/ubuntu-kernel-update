@@ -39,6 +39,7 @@ jobs:
         sudo mkdir -p /workdir/upload
         sudo chown $USER:$GROUPS /workdir
         sudo chown $USER:$GROUPS /workdir/upload
+        echo "::set-output name=status::success"
 
     - name: Get source code
       working-directory: /workdir
