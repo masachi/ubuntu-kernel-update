@@ -64,7 +64,7 @@ jobs:
         cp convert_official_linux-5.13.x_src_to_bbrplus.patch /workdir/linux-${kernel_ver}/5.13_bbrplus.patch
         patch -p0 < 5.13_bbrplus.patch
         wget -O .config https://raw.githubusercontent.com/masachi/ubuntu-kernel-update/main/config-5.10.27-bbrplus
-        cp .config /workdir/linux-${kernel_ver}/.config
+        # cp .config /workdir/linux-${kernel_ver}/.config
         sed -ri '/CONFIG_SYSTEM_TRUSTED_KEYS/s/=.+/=""/g' .config && scripts/config --disable MODULE_SIG && scripts/config --disable DEBUG_INFO
         echo -e "$(nproc) thread compile"
         sudo time make -j$(nproc) deb-pkg
