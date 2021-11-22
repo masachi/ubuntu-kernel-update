@@ -1,11 +1,3 @@
-#  不维护了
-# This is free software, licensed under the MIT License.
-# See /LICENSE for more information.
-#
-# Description: Build Kernel using GitHub Actions
-# Change from P3TERX
-#
-
 name: Ubuntu Kernel latest BBRPLUS
 
 on:
@@ -47,6 +39,7 @@ jobs:
         sudo mkdir -p /workdir/upload
         sudo chown $USER:$GROUPS /workdir
         sudo chown $USER:$GROUPS /workdir/upload
+        echo "::set-output name=status::success"
 
     - name: Get source code
       working-directory: /workdir
