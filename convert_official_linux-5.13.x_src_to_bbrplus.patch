@@ -11,6 +11,7 @@ diff -ruaN include/net/inet_connection_sock.h include/net/inet_connection_sock.h
  };
  
  #define ICSK_TIME_RETRANS	1	/* Retransmit timer */
+
 diff -ruaN include/net/tcp.h include/net/tcp.h
 --- include/net/tcp.h	2021-05-19 16:30:06.000000000 +0800
 +++ include/net/tcp.h	2021-05-22 11:33:34.898841467 +0800
