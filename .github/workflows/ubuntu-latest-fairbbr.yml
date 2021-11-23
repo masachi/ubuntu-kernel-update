@@ -60,9 +60,9 @@ jobs:
       run: |
         kernel_ver=$(curl -s https://www.kernel.org/ | grep ' <a href="https://cdn.kernel.org/pub/linux/kernel/' | head -n 1 | awk -F '[>]' '{print $2}' | awk -F '[<]' '{print $1}')
         cd linux-$kernel_ver
-        wget -O convert_official_linux-5.13.x_src_to_bbrplus.patch https://raw.githubusercontent.com/masachi/ubuntu-kernel-update/main/convert_official_linux-5.13.x_src_to_bbrplus.patch
-        cp convert_official_linux-5.13.x_src_to_bbrplus.patch /workdir/linux-${kernel_ver}/5.13_bbrplus.patch
-        patch -p0 < 5.13_bbrplus.patch
+        wget -O kernel.patch https://raw.githubusercontent.com/masachi/ubuntu-kernel-update/main/kernel.patch
+        cp kernel.patch /workdir/linux-${kernel_ver}/kernel.patch
+        patch -p0 < kernel.patch
         wget -O .config https://raw.githubusercontent.com/masachi/ubuntu-kernel-update/main/config-5.10.27-bbrplus
         # cp .config /workdir/linux-${kernel_ver}/.config
         # copy bbr_plus to net ipv4
